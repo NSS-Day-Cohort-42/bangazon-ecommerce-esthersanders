@@ -40,6 +40,8 @@ class Payments(ViewSet):
         new_payment.customer = customer
         new_payment.save()
 
+        #new_payment.customer = request.data["customer_id"]???
+        
         serializer = PaymentSerializer(
             new_payment, context={'request': request})
 

@@ -33,6 +33,7 @@ class PaymentTests(APITestCase):
         self.client.credentials(HTTP_AUTHORIZATION='Token ' + self.token)
         response = self.client.post(url, data, format='json')
         json_response = json.loads(response.content)
+        
 
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertEqual(json_response["merchant_name"], "American Express")
