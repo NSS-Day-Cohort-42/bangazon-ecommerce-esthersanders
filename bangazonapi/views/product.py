@@ -1,12 +1,15 @@
 """View module for handling requests about products"""
+from bangazonapi.models import product
+from bangazonapi.models import rating
 import base64
 from django.core.files.base import ContentFile
 from django.http import HttpResponseServerError
 from rest_framework.viewsets import ViewSet
 from rest_framework.response import Response
 from rest_framework import serializers
+from rest_framework.decorators import action
 from rest_framework import status
-from bangazonapi.models import Product, Customer, ProductCategory
+from bangazonapi.models import Product, Customer, ProductCategory, ProductRating
 from rest_framework.permissions import IsAuthenticatedOrReadOnly
 from rest_framework.parsers import MultiPartParser, FormParser
 
@@ -17,7 +20,7 @@ class ProductSerializer(serializers.ModelSerializer):
         model = Product
         fields = ('id', 'name', 'price', 'number_sold', 'description',
                   'quantity', 'created_date', 'location', 'image_path',
-                  'average_rating', 'can_be_rated', )
+                  'average_rating', )
         depth = 1
 
 
@@ -148,12 +151,13 @@ class Products(ViewSet):
                 }
             }
         """
+
         try:
             product = Product.objects.get(pk=pk)
             serializer = ProductSerializer(product, context={'request': request})
             return Response(serializer.data)
-        except Exception as ex:
-            return HttpResponseServerError(ex)
+        except Product.DoesNotExist as ex:
+            return HttpResponseServerError(ex, status = status.HTTP_404_NOT_FOUND)
 
     def update(self, request, pk=None):
         """
@@ -211,6 +215,7 @@ class Products(ViewSet):
 
         except Exception as ex:
             return Response({'message': ex.args[0]}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
 
     def list(self, request):
         """
@@ -275,3 +280,28 @@ class Products(ViewSet):
         serializer = ProductSerializer(
             products, many=True, context={'request': request})
         return Response(serializer.data)
+
+    @action(methods=['PUT', 'POST'], detail=True)
+    def rate(self, request, pk=None):
+        """ Managing ratings on products"""
+        if request.method == 'POST':
+            product = Product.objects.get(pk=pk)
+            customer = Customer.objects.get(user = request.auth.user)
+            
+            try:
+                current_user_rating = ProductRating.objects.get(product=product)
+                return Response(
+                    {'message': 'You have already rated this product'},
+                    status=status.HTTP_422_UNPROCESSABLE_ENTITY
+                )
+
+            except ProductRating.DoesNotExist:
+                current_user_rating = ProductRating()
+                current_user_rating.rating = request.data["rating"]
+                current_user_rating.product = product
+                current_user_rating.customer = customer
+                
+                current_user_rating.save()
+
+                return Response({}, status=status.HTTP_201_CREATED)
+

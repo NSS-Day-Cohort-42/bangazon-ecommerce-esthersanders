@@ -37,18 +37,6 @@ class Product(SafeDeleteModel):
             product=self, order__payment_type__isnull=False)
         return sold.count()
 
-    @property
-    def can_be_rated(self):
-        """can_be_rated property, which will be calculated per user
-
-        Returns:
-            boolean -- If the user can rate the product or not
-        """
-        return self.__can_be_rated
-
-    @can_be_rated.setter
-    def can_be_rated(self, value):
-        self.__can_be_rated = value
 
     @property
     def average_rating(self):
@@ -61,9 +49,17 @@ class Product(SafeDeleteModel):
         total_rating = 0
         for rating in ratings:
             total_rating += rating.rating
+        try:
+            avg = total_rating / len(ratings)
+            return avg
 
-        avg = total_rating / len(ratings)
-        return avg
+        except ZeroDivisionError: 
+            return f"This product has no ratings yet."
+
+    @average_rating.setter
+    def average_rating(self, value):
+        """sets average_rating property"""
+        self.__average_rating = value
 
     class Meta:
         verbose_name = ("product")

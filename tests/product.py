@@ -27,6 +27,7 @@ class ProductTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertEqual(json_response["name"], "Sporting Goods")
 
+
     def test_create_product(self):
         """
         Ensure we can create a new product.
@@ -97,4 +98,58 @@ class ProductTests(APITestCase):
 
     # TODO: Delete product
 
+    def test_delete_product(self):
+        """
+        Ensure we can delete an existing product
+        """
+        self.test_create_product()
+
+        url = "/products/1"
+
+        self.client.credentials(HTTP_AUTHORIZATION='Token ' + self.token)
+        response = self.client.delete(url, None, format='json')
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+
+        # GET GAME AGAIN TO VERIFY 404 response
+        response = self.client.get(url, None, format='json')
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
     # TODO: Product can be rated. Assert average rating exists.
+
+    def test_can_be_rated(self):
+        """
+        Ensure user can rate an existing product
+        """
+       
+        self.test_create_product()
+
+        url = "/products"
+        data = {
+            "name": "Kite",
+            "price": 14.99,
+            "quantity": 60,
+            "description": "It flies high",
+            "category_id": 1,
+            "location": "Pittsburgh",
+            "average_rating": 5,
+        }
+
+        self.client.credentials(HTTP_AUTHORIZATION='Token ' + self.token)
+        response = self.client.post(url, data, format='json')
+        json_response = json.loads(response.content)
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertTrue(json_response["average_rating"], 5)
+
+
+
+
+
+        #if ProductRating Serializer added:
+        # json_response = json.loads(response.content)
+        # self.assertEqual(json_response["product_id"], 1)
+        # self.assertEqual(json_response["customer_id"], 1)
+        # self.assertEqual(json_response["rating"], 5)
+
+    
+        
+    
