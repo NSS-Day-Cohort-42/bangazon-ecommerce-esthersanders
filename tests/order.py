@@ -31,7 +31,7 @@ class OrderTests(APITestCase):
 
         # Create a payment type
         url = "/paymenttypes"
-        data = {"merchant_name": "Sally", "account_number": 1234, "expiration_date": 2020-12-15, "create_date": 2019-11-11, "customer": 1 }
+        data = {"merchant_name": "Sally", "account_number": '1234', "expiration_date": '2020-12-15', "create_date": '2019-11-11', "customer": 1 }
         response = self.client.post(url, data, format='json')
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
 
@@ -71,7 +71,6 @@ class OrderTests(APITestCase):
         data = { "product_id": 1 }
         self.client.credentials(HTTP_AUTHORIZATION='Token ' + self.token)
         response = self.client.delete(url, data, format='json')
-
         self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
 
         # Get cart and verify product was removed
@@ -87,22 +86,19 @@ class OrderTests(APITestCase):
     # TODO: Complete order by adding payment type
     def test_add_payment_type(self):
         """ Ensure we can add payment type to order"""
+        self.test_add_product_to_order()
 
-        url = "/cart"
+        url = "/orders/1"
         data = {"payment_type": 1}
         self.client.credentials(HTTP_AUTHORIZATION='Token ' + self.token)
         response = self.client.put(url, data, format='json')
-        json_response = json.loads(response.content)
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
 
         # Get cart and verify payment type was added
-        url = "/cart"
-        self.client.credentials(HTTP_AUTHORIZATION='Token ' + self.token)
         response = self.client.get(url, None, format='json')
         json_response = json.loads(response.content)
-
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(json_response["payment_type"], 1)
+        self.assertEqual(json_response["payment_type"], 'http://testserver/paymenttypes/1')
        
 
 
