@@ -4,6 +4,7 @@ from bangazonapi.models import rating
 import base64
 from django.core.files.base import ContentFile
 from django.http import HttpResponseServerError
+from django.core.exceptions import ValidationError
 from rest_framework.viewsets import ViewSet
 from rest_framework.response import Response
 from rest_framework import serializers
@@ -105,12 +106,17 @@ class Products(ViewSet):
 
             new_product.image_path = data
 
-        new_product.save()
+        new_product.full_clean()
 
-        serializer = ProductSerializer(
+        try:
+            new_product.save()
+            serializer = ProductSerializer(
             new_product, context={'request': request})
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
 
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
+        except ValidationError as ex:
+            Response({'message': 'The price cannot exceed $17,500.'}, status=status.HTTP_404_NOT_FOUND)
+        
 
     def retrieve(self, request, pk=None):
         """

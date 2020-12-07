@@ -82,8 +82,24 @@ class Payments(ViewSet):
     def list(self, request):
         """Handle GET requests to payment type resource"""
         payment_types = Payment.objects.all()
-
-        # customer_id = self.request.query_params.get('customer', None)
+        # INSERT INTO bangazonapi_payment ("""
+        #    id,
+        #    deleted,
+        #    merchant_name,
+        #    account_number,
+        #    expiration_date,
+        #    create_date,
+        #    customer_id
+        #  """)
+        # VALUES ("""
+        #    id:integer,
+        #    'deleted:datetime',
+        #    'merchant_name:varchar(25)',
+        #    'account_number:varchar(25)',
+        #    'expiration_date:date',
+        #    'create_date:date',
+        #    customer_id:integer
+        #  """); # customer_id = self.request.query_params.get('customer', None)
 
         customer = Customer.objects.get(user=request.auth.user)
 
