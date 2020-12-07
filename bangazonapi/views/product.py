@@ -9,7 +9,7 @@ from rest_framework.response import Response
 from rest_framework import serializers
 from rest_framework.decorators import action
 from rest_framework import status
-from bangazonapi.models import Product, Customer, ProductCategory, ProductRating
+from bangazonapi.models import Product, Customer, ProductCategory, ProductRating, UserLike
 from rest_framework.permissions import IsAuthenticatedOrReadOnly
 from rest_framework.parsers import MultiPartParser, FormParser
 
@@ -20,7 +20,7 @@ class ProductSerializer(serializers.ModelSerializer):
         model = Product
         fields = ('id', 'name', 'price', 'number_sold', 'description',
                   'quantity', 'created_date', 'location', 'image_path',
-                  'average_rating', )
+                  'average_rating', 'liked' )
         depth = 1
 
 
@@ -281,10 +281,26 @@ class Products(ViewSet):
                 return False
 
             products = filter(sold_filter, products)
+            
+
+        for product in products:
+
+            customer = Customer.objects.get(user=request.auth.user)
+            product.liked = None
+
+            try:
+                UserLike.objects.get(customer=customer, product=product)
+                product.liked = True
+            except UserLike.DoesNotExist:
+                product.liked = False
+
+        
 
         serializer = ProductSerializer(
             products, many=True, context={'request': request})
         return Response(serializer.data)
+
+        
 
     @action(methods=['PUT', 'POST'], detail=True)
     def rate(self, request, pk=None):
@@ -304,9 +320,68 @@ class Products(ViewSet):
                 current_user_rating = ProductRating()
                 current_user_rating.rating = request.data["rating"]
                 current_user_rating.product = product
-                current_user_rating.customer = customer
-                
+                current_user_rating.customer = customer                
                 current_user_rating.save()
 
                 return Response({}, status=status.HTTP_201_CREATED)
+
+
+    @action(methods=['POST', 'DELETE'], detail=True)
+    def like(self, request, pk=None):
+        """User can like or unlike product"""
+        if request.method == 'POST':
+            product = Product.objects.get(pk=pk)
+            customer = Customer.objects.get(user = request.auth.user)
+            
+            try:
+                current_user_like = UserLike.objects.get(product=product)
+                return Response(
+                    {'message': 'You have already liked this product'},
+                    status=status.HTTP_422_UNPROCESSABLE_ENTITY
+                )
+
+            except UserLike.DoesNotExist:
+                current_user_like = UserLike()
+                current_user_like.product = product
+                current_user_like.customer = customer                
+                current_user_like.save()
+                
+
+                return Response({}, status=status.HTTP_201_CREATED)
+
+        elif request.method == 'DELETE':
+            try:
+                product = Product.objects.get(pk=pk)
+                
+            except Product.DoesNotExist:
+
+                return Response(
+                    {'message': 'Product does not exist'},
+                    status = status.HTTP_400_BAD_REQUEST
+                )
+            customer=Customer.objects.get(user=request.auth.user)
+
+            try:
+                current_user_like = UserLike.objects.get(product=product, customer=customer)
+                current_user_like.delete()
+
+                return Response(None, status=status.HTTP_204_NO_CONTENT)
+
+            except UserLike.DoesNotExist:
+                return Response(
+                    {'message': 'You cannot unlike this product'},
+                    status=status.HTTP_404_NOT_found
+                )
+
+    @action(methods = ['GET'], detail=False)
+    def liked(self, request, pk=None):
+        if request.method == 'GET':
+            products =Product.objects.filter(liked = True)
+
+            serializer = ProductSerializer(
+            products, many=True, context={'request': request})
+            return Response(serializer.data)
+            
+        
+
 

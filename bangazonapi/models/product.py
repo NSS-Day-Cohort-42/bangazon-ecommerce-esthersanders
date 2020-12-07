@@ -65,4 +65,10 @@ class Product(SafeDeleteModel):
         verbose_name = ("product")
         verbose_name_plural = ("products")
 
-    # add a pre_save signal
+    @property
+    def liked(self):
+        return self.__liked
+
+    @liked.setter
+    def liked(self, value):
+        self.__liked = value
