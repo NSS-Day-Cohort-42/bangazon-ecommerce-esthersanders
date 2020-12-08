@@ -226,7 +226,7 @@ class Profile(ViewSet):
 
         return Response({}, status=status.HTTP_405_METHOD_NOT_ALLOWED)
 
-    @action(methods=['get'], detail=False)
+    @action(methods=['get', 'post'], detail=False)
     def favoritesellers(self, request):
         """
         @api {GET} /profile/favoritesellers GET favorite sellers
@@ -274,12 +274,35 @@ class Profile(ViewSet):
                 }
             ]
         """
-        customer = Customer.objects.get(user=request.auth.user)
-        favorites = Favorite.objects.filter(customer=customer)
+        if request.method == 'POST':
+            customer = Customer.objects.get(user=request.auth.user)
+            seller = Customer.objects.get(pk=request.data['seller'])
+            
+            try:
+                current_user_favorite = Favorite.objects.get(customer=customer, seller=seller)
+                return Response(
+                    {'message': 'You have already favorited this seller'},
+                    status=status.HTTP_422_UNPROCESSABLE_ENTITY
+                )
+                
 
-        serializer = FavoriteSerializer(
-            favorites, many=True, context={'request': request})
-        return Response(serializer.data)
+            except Favorite.DoesNotExist:
+                current_user_favorite = Favorite()
+                current_user_favorite.customer = customer
+                current_user_favorite.seller = seller             
+                current_user_favorite.save()
+                
+
+                return Response({}, status=status.HTTP_201_CREATED)
+
+        if request.method == 'GET':
+            customer = Customer.objects.get(user=request.auth.user)
+            favorites = Favorite.objects.filter(customer=customer)
+            
+
+            serializer = FavoriteSerializer(
+                favorites, many=True, context={'request': request})
+            return Response(serializer.data)
 
 
 class LineItemSerializer(serializers.HyperlinkedModelSerializer):
