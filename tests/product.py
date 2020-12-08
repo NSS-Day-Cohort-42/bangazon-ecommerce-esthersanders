@@ -122,32 +122,26 @@ class ProductTests(APITestCase):
        
         self.test_create_product()
 
-        url = "/products"
+        #add rating
+
+        url = '/products/1/rate'
         data = {
-            "name": "Kite",
-            "price": 14.99,
-            "quantity": 60,
-            "description": "It flies high",
-            "category_id": 1,
-            "location": "Pittsburgh",
-            "average_rating": 5,
+            "rating": 5
         }
 
         self.client.credentials(HTTP_AUTHORIZATION='Token ' + self.token)
         response = self.client.post(url, data, format='json')
         json_response = json.loads(response.content)
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+        #get products to check for rating
+        url = '/products/1'
+        response = self.client.get(url, None, format='json')
+        json_response = json.loads(response.content)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertTrue(json_response["average_rating"], 5)
 
 
-
-
-
-        #if ProductRating Serializer added:
-        # json_response = json.loads(response.content)
-        # self.assertEqual(json_response["product_id"], 1)
-        # self.assertEqual(json_response["customer_id"], 1)
-        # self.assertEqual(json_response["rating"], 5)
 
     
         
